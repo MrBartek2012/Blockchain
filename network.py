@@ -22,8 +22,12 @@ def add_block():
     # Append the new block to the blockchain
     blockchain.append(new_block)
 
-    # Notify that a new block has been added
+    # Print the new block in the terminal to notify that it was mined
     print(f"New block mined: {new_block}")
+    print("Blockchain updated:")
+    for block in blockchain:
+        print(f"Index: {block['index']}, Hash: {block['hash']}")
+
     return jsonify({'message': 'Block successfully mined and added to blockchain!'}), 200
 
 @app.route('/get_chain', methods=['GET'])
