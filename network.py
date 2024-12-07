@@ -1,27 +1,38 @@
 from flask import Flask, jsonify, request
-from blockchain import Blockchain
+import time
 
 app = Flask(__name__)
-blockchain = Blockchain()
 
-# Endpoint to get the full blockchain
-@app.route('/blocks', methods=['GET'])
-def get_blocks():
-    return jsonify(blockchain.get_chain())
+# Blockchain variable to store the blockchain
+blockchain = []
 
-# Endpoint to mine a new block (triggered by a miner)
-@app.route('/mine', methods=['POST'])
-def mine_block():
-    data = request.json.get('data')
-    blockchain.add_block(data)
-    return jsonify({"message": "Block mined successfully!"})
+# Dummy genesis block
+blockchain.append({
+    'index': 1,
+    'previous_hash': '0',
+    'timestamp': time.time(),
+    'data': 'Genesis Block',
+    'hash': 'genesis_hash',
+})
 
-# Endpoint to add a block from another node
 @app.route('/add_block', methods=['POST'])
 def add_block():
-    block_data = request.json
-    blockchain.add_block(block_data['data'])
-    return jsonify({"message": "Block added successfully!"})
+    new_block = request.get_json()
+    
+    # Validate and append the new block to the blockchain
+    blockchain.append(new_block)
+
+    # Notify that a new block has been added
+    print(f"New block mined: {new_block}")
+    return jsonify({'message': 'Block successfully mined and added to blockchain!'}), 200
+
+@app.route('/get_chain', methods=['GET'])
+def get_chain():
+    return jsonify({'blockchain': blockchain})
+
+@app.route('/get_ip', methods=['GET'])
+def get_ip():
+    return jsonify({'ip': '192.168.1.34'})  # Main node IP
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
