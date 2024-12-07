@@ -1,62 +1,71 @@
 import hashlib
 import time
 import requests
+import json
 
-# Simple custom coinhash (easy hashing algorithm)
-def coinhash(data):
-    return hashlib.md5(data.encode()).hexdigest()  # Using MD5 for simplicity
+# Function to mine a block with custom hashing
+def mine_block(previous_block, data):
+    print("Mining block...")
 
-# Simulating mining by creating a block with custom hashing
-def mine_block(blockchain, data):
-    previous_block = blockchain[-1] if blockchain else None
-    index = len(blockchain) + 1
-    previous_hash = previous_block['hash'] if previous_block else '0'
-    
+    # Simple mining process that generates a hash based on the block's data
     new_block = {
-        'index': index,
-        'previous_hash': previous_hash,
+        'index': previous_block['index'] + 1,
+        'previous_hash': previous_block['hash'],
         'timestamp': time.time(),
         'data': data,
-        'hash': coinhash(data)  # Applying custom hashing
+        'hash': ''
     }
+
+    # Simple Proof of Work: Find a hash that starts with '0000'
+    difficulty = 4
+    new_block['hash'] = calculate_hash(new_block)
+    while not new_block['hash'].startswith('0' * difficulty):
+        new_block['timestamp'] = time.time()
+        new_block['hash'] = calculate_hash(new_block)
     
-    # After mining the block, send it to the server (other computers) to be added to the blockchain
-    try:
-        print("Mining block...")
-        response = requests.post('http://192.168.1.34:5000/add_block', json=new_block)  # Update with your server IP
-        if response.status_code == 200:
-            print(response.json()['message'])
-    except requests.exceptions.RequestException as e:
-        print(f"Error broadcasting mined block: {e}")
+    # Once mined, return the new block
+    print(f"Block successfully mined with hash: {new_block['hash']}")
+    return new_block
 
-# Function to poll and get the latest blockchain from the main node
-def poll_for_new_blocks():
-    try:
-        response = requests.get('http://192.168.1.34:5000/get_chain')  # Fetch current blockchain
-        blockchain = response.json()['blockchain']
-        
-        # Check if blockchain has changed
-        return blockchain
+# Helper function to calculate block hash
+def calculate_hash(block):
+    block_string = json.dumps(block, sort_keys=True).encode()
+    return hashlib.sha256(block_string).hexdigest()
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching blockchain: {e}")
-        return None
+# Function to broadcast the mined block to the network (via POST request)
+def broadcast_block(mined_block):
+    url = 'http://192.168.1.34:5000/add_block'  # Main node IP address (replace with actual)
+    response = requests.post(url, json={'data': mined_block['data']})
+    if response.status_code == 200:
+        print("Block successfully added to the blockchain!")
+    else:
+        print("Error adding block to the blockchain.")
 
-# Main mining logic
-def mine():
+# Main mining loop
+def mine_and_broadcast():
+    # Initialize the blockchain with the Genesis block
+    genesis_block = {
+        'index': 1,
+        'previous_hash': '0',
+        'timestamp': time.time(),
+        'data': 'Genesis Block',
+        'hash': 'genesis_hash'
+    }
+
+    previous_block = genesis_block
     while True:
-        # Poll for the current blockchain
-        blockchain = poll_for_new_blocks()
+        # Simulate mining a block
+        mined_block = mine_block(previous_block, "Block mined with custom coinhash")
 
-        if blockchain:
-            print(f"Current blockchain: {blockchain}")
-            
-            # Mine a block (you can add your own data to mine)
-            data = 'Block mined with custom coinhash'
-            mine_block(blockchain, data)  # Mine the block and broadcast it
-        
-        # Wait for some time before polling again (this simulates real-time)
-        time.sleep(5)  # Poll every 5 seconds
+        # Broadcast the mined block to the network
+        broadcast_block(mined_block)
 
-if __name__ == '__main__':
-    mine()
+        # Update the previous block reference for the next iteration
+        previous_block = mined_block
+
+        # Wait before mining the next block
+        time.sleep(5)
+
+# Run the miner
+if __name__ == "__main__":
+    mine_and_broadcast()

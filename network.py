@@ -1,42 +1,50 @@
 from flask import Flask, jsonify, request
+import json
+import hashlib
 import time
 
 app = Flask(__name__)
 
-# Blockchain variable to store the blockchain
+# Simple Blockchain setup
 blockchain = []
 
-# Genesis block initialization
-blockchain.append({
-    'index': 1,
-    'previous_hash': '0',
-    'timestamp': time.time(),
-    'data': 'Genesis Block',
-    'hash': 'genesis_hash',
-})
+# Helper function to calculate block hash
+def calculate_hash(block):
+    block_string = json.dumps(block, sort_keys=True).encode()
+    return hashlib.sha256(block_string).hexdigest()
 
-@app.route('/add_block', methods=['POST'])
-def add_block():
-    new_block = request.get_json()
+# Genesis block (first block in the chain)
+def create_genesis_block():
+    return {
+        'index': 1,
+        'previous_hash': '0',
+        'timestamp': time.time(),
+        'data': 'Genesis Block',
+        'hash': 'genesis_hash'
+    }
 
-    # Append the new block to the blockchain
-    blockchain.append(new_block)
+# Create initial blockchain with Genesis block
+blockchain.append(create_genesis_block())
 
-    # Print the new block in the terminal to notify that it was mined
-    print(f"New block mined: {new_block}")
-    print("Blockchain updated:")
-    for block in blockchain:
-        print(f"Index: {block['index']}, Hash: {block['hash']}")
-
-    return jsonify({'message': 'Block successfully mined and added to blockchain!'}), 200
-
+# Endpoint to get the current blockchain
 @app.route('/get_chain', methods=['GET'])
 def get_chain():
     return jsonify({'blockchain': blockchain})
 
-@app.route('/get_ip', methods=['GET'])
-def get_ip():
-    return jsonify({'ip': '192.168.1.34'})  # Main node IP
+# Endpoint to add a new block (mined by other nodes)
+@app.route('/add_block', methods=['POST'])
+def add_block():
+    data = request.get_json()
+    new_block = {
+        'index': len(blockchain) + 1,
+        'previous_hash': blockchain[-1]['hash'],
+        'timestamp': time.time(),
+        'data': data['data'],
+        'hash': calculate_hash(data)
+    }
+    blockchain.append(new_block)
+    return jsonify({'message': 'Block successfully added to blockchain!'})
 
+# Run the Flask app on all network interfaces (0.0.0.0)
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
