@@ -6,7 +6,7 @@ app = Flask(__name__)
 # Blockchain variable to store the blockchain
 blockchain = []
 
-# Dummy genesis block
+# Genesis block initialization
 blockchain.append({
     'index': 1,
     'previous_hash': '0',
@@ -18,8 +18,8 @@ blockchain.append({
 @app.route('/add_block', methods=['POST'])
 def add_block():
     new_block = request.get_json()
-    
-    # Validate and append the new block to the blockchain
+
+    # Append the new block to the blockchain
     blockchain.append(new_block)
 
     # Notify that a new block has been added

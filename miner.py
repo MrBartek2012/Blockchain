@@ -29,20 +29,34 @@ def mine_block(blockchain, data):
     except requests.exceptions.RequestException as e:
         print(f"Error broadcasting mined block: {e}")
 
-# Main mining logic
-def mine():
-    # Get the current blockchain from the network
+# Function to poll and get the latest blockchain from the main node
+def poll_for_new_blocks():
     try:
         response = requests.get('http://192.168.1.34:5000/get_chain')  # Fetch current blockchain
         blockchain = response.json()['blockchain']
-        print(f"Blockchain retrieved: {blockchain}")
+        
+        # Check if blockchain has changed
+        return blockchain
 
-        # Mine a block (you can add your own data to mine)
-        data = 'Block mined with custom coinhash'
-        mine_block(blockchain, data)  # Mine the block and broadcast it
-    
     except requests.exceptions.RequestException as e:
         print(f"Error fetching blockchain: {e}")
+        return None
+
+# Main mining logic
+def mine():
+    while True:
+        # Poll for the current blockchain
+        blockchain = poll_for_new_blocks()
+
+        if blockchain:
+            print(f"Current blockchain: {blockchain}")
+            
+            # Mine a block (you can add your own data to mine)
+            data = 'Block mined with custom coinhash'
+            mine_block(blockchain, data)  # Mine the block and broadcast it
+        
+        # Wait for some time before polling again (this simulates real-time)
+        time.sleep(5)  # Poll every 5 seconds
 
 if __name__ == '__main__':
     mine()
